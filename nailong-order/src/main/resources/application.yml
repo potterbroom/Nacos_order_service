@@ -3,6 +3,13 @@ spring:
     name: nailong-order
 server:
   port: 9001
+
+datasource:
+    url: jdbc:mysql://localhost:3306/nailong_order?useSSL=false&serverTimezone=UTC&characterEncoding=utf8
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
 mybatis-plus:
   mapper-locations: classpath:/mappers/*.xml
   type-aliases-package: org.csu.nailong.order.entity

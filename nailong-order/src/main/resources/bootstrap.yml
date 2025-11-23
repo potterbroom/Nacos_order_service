@@ -19,4 +19,8 @@ spring:
         namespace: ${NACOS_NAMESPACE:public}
         group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
         file-extension: yaml
-        refresh-enabled: true
+        refresh-enabled: false
+          # 关键是这两行：关闭 spring.config.import 的强制校验
+import-check:
+            enabled: false
+
