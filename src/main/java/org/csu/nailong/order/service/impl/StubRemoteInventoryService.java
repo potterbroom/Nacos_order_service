@@ -1,4 +1,4 @@
-﻿package org.csu.nailong.order.service.impl;
+package org.csu.nailong.order.service.impl;
 
 import org.csu.nailong.order.dao.ItemDao;
 import org.csu.nailong.order.entity.Item;
