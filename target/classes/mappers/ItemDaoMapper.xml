@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.csu.nailong.order.dao.ItemDao">
+
+    <resultMap id="itemResultMap" type="org.csu.nailong.order.entity.Item">
+        <result column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="product_id" property="product_id"/>
+        <result column="url" property="url"/>
+        <result column="price" property="price"/>
+        <result column="description" property="description"/>
+        <result column="isListing" property="isListing"/>
+        <result column="isDelete" property="isDelete" />
+        <result column="businessId" property="businessId" />
+        <result column="RemaingNumb" property="remainingNumb"/>
+    </resultMap>
+
+    <!-- 根据 productId 获取 Item 列表 -->
+    <select id="getItemListByProduct" parameterType="int" resultMap="itemResultMap">
+        SELECT i.*, b.businessId, b.RemaingNumb
+        FROM item i
+        LEFT JOIN businessItemRemaining b ON i.id = b.itemId
+        WHERE i.product_id = #{product_Id} AND i.isDelete = 0 AND i.isListing = 1;
+    </select>
+
+    <select id="getItemListByProductAndIgnoreListing" parameterType="int" resultMap="itemResultMap">
+        SELECT i.*, b.businessId, b.RemaingNumb
+        FROM item i
+                 LEFT JOIN businessItemRemaining b ON i.id = b.itemId
+        WHERE i.product_id = #{product_Id} AND i.isDelete = 0;
+    </select>
+
+
+    <!-- 根据 itemId 获取单个 Item -->
+    <select id="getItem" parameterType="int" resultMap="itemResultMap">
+        SELECT i.*, b.businessId AS businessId, b.RemaingNumb AS remain_numb
+        FROM item i
+                 LEFT JOIN businessItemRemaining b ON i.id = b.itemId
+        WHERE i.id = #{itemId};
+    </select>
+
+    <!-- 插入新的商品信息 -->
+    <insert id="insertItem" parameterType="org.csu.nailong.order.entity.Item">
+        INSERT INTO item (id, name, product_id, url, price, isDelete, isListing)
+        VALUES (#{id}, #{name}, #{product_id}, #{url}, #{price}, 0, 0);
+    </insert>
+
+    <update id="deleteItem" parameterType="int">
+        UPDATE item i
+        SET i.isDelete = 1
+        WHERE i.id = #{itemId};
+    </update>
+
+    <!--根据关键词搜索商品-->
+    <select id="SearchItems" parameterType="String">
+        SELECT i.*, b.businessId AS businessId, b.RemaingNumb AS remain_numb
+            FROM Item i
+            JOIN producttype p ON i.product_id = p.id
+            JOIN category c ON p.category_id = c.id
+            JOIN businessItemRemaining b ON i.id = b.itemId
+            WHERE (c.name LIKE #{keyword} OR p.description LIKE #{keyword} OR i.name LIKE #{keyword}) AND (i.isListing = 1) AND (i.isDelete = 0)
+    </select>
+
+    <!--获取item id-->
+    <select id="getItemId" parameterType="String">
+        SELECT id FROM item WHERE name=#{itemName}
+    </select>
+</mapper>
