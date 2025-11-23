@@ -11,8 +11,8 @@ spring:
         namespace: ${NACOS_NAMESPACE:public}
         group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
         service: ${spring.application.name}
-        username: ${NACOS_USERNAME:nacos}
-        password: ${NACOS_PASSWORD:nacos}
+#        username: ${NACOS_USERNAME:nacos}
+#        password: ${NACOS_PASSWORD:nacos}
 
       config:
         server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
