@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.csu.nailong.order.dao.CartDao">
+
+    <insert id="executeAddCart">
+        INSERT INTO cart (userID, ItemID, ItemNum)
+        VALUES (#{userID}, #{itemID}, #{itemNum})
+    </insert>
+
+    <select id="searchUserCartItems" resultType="org.csu.nailong.order.entity.CartItem">
+        SELECT cart.*, item.name, item.price, item.url
+        FROM cart
+        JOIN item ON item.id = cart.ItemID
+        WHERE userID = #{userID}
+          AND isCovered = false
+          AND isDeleted = false
+    </select>
+
+    <update id="coverCartItem">
+        UPDATE cart
+        SET isCovered = true
+        WHERE userID = #{userID}
+          AND ItemID = #{itemID}
+    </update>
+
+    <update id="executeRemoveCart">
+        UPDATE  cart
+        SET isDeleted = true
+        WHERE  userID = #{userID}
+          AND  ItemID = #{itemID}
+    </update>
+
+    <select id="getCartCount" resultType="int">
+        select cart.ItemNum from cart WHERE ItemID= #{itemID} AND userID= #{userID} AND isDeleted=0 AND isCovered=0;
+    </select>
+</mapper>

@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: nailong-order
+server:
+  port: 9001
+mybatis-plus:
+  mapper-locations: classpath:/mappers/*.xml
+  type-aliases-package: org.csu.nailong.order.entity

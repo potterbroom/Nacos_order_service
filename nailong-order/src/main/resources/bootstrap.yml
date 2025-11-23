@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: nailong-order
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 
+        namespace: 
+        group: 
+      config:
+        server-addr: 
+        namespace: 
+        group: 
+        file-extension: yaml
