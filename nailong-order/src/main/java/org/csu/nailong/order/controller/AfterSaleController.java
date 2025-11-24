@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+// TODO: 当前售后 API 只处理订单表和售后表数据，暂未涉及用户或商品/库存模块调用
 @RestController
 @RequestMapping("/api/after-sales")
 public class AfterSaleController {
@@ -21,16 +22,16 @@ public class AfterSaleController {
     @Autowired
     private OrderService orderService;
 
+    // Controller -> OrderService -> AfterSale persistence (后续如需联动用户/库存，再从服务层调用 RemoteXXXService)
     @PostMapping("/{orderId}/actions")
     public CommonResponse<Void> handleButtonClick(@RequestBody Map<String, String> request,
                                                   @PathVariable String orderId) {
         int id = Integer.parseInt(request.get("id"));
-        AfterSale afterSale = orderService.getAfterSale(orderId);
-        afterSale.setAfter_sale_status(id);
-        orderService.updateAfterSale(afterSale);
+        orderService.updateAfterSaleStatus(orderId, id);
         return CommonResponse.createForSuccess();
     }
 
+    // Controller -> OrderService -> AfterSaleMapper（无跨模块依赖）
     @GetMapping
     public CommonResponse<AfterSale> statusChange(@RequestParam("orderId") String orderId) {
         AfterSale afterSale = orderService.getAfterSale(orderId);

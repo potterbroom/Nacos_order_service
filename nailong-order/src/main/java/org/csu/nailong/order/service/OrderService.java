@@ -5,9 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.csu.nailong.order.dao.AfterSaleMapper;
-import org.csu.nailong.order.dao.ItemDao;
 import org.csu.nailong.order.dao.OrderMapper;
-import org.csu.nailong.order.dao.UserDao;
 import org.csu.nailong.order.entity.AfterSale;
 import org.csu.nailong.order.entity.CartItem;
 import org.csu.nailong.order.entity.Item;
@@ -35,16 +33,11 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
     @Autowired
     private OrderMapper orderMapper;
     @Autowired
-    private UserDao userDao;
-    @Autowired
-    private ItemService itemService;
+    private RemoteUserService remoteUserService;
     @Autowired
     private RemoteInventoryService remoteInventoryService;
     @Autowired
     private AfterSaleMapper afterSaleMapper;
-
-    @Autowired
-    private ItemDao itemDao;
     //获取带格式的时间
     public static String getTime() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss"); // 时间格式
@@ -84,7 +77,10 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
             int remain = remoteInventoryService.getItemCount(cartItem.getItemID());
             if(remain >= cartItem.getItemNum()){
                 //减少库存
-                 Item item = itemService.getItemByItemId(cartItem.getItemID());
+                 Item item = remoteInventoryService.getItemById(cartItem.getItemID());
+                if (item == null) {
+                    continue;
+                }
                 item.setRemainingNumb(remain-cartItem.getItemNum());
                 remoteInventoryService.updateItem(item);
 
@@ -113,7 +109,10 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
             int remain = remoteInventoryService.getItemCount(cartItem.getItemID());
             if(remain >= cartItem.getItemNum()){
                 //减少库存
-                Item item = itemService.getItemByItemId(cartItem.getItemID());
+                Item item = remoteInventoryService.getItemById(cartItem.getItemID());
+                if (item == null) {
+                    continue;
+                }
                 item.setRemainingNumb(remain-cartItem.getItemNum());
                 remoteInventoryService.updateItem(item);
 
@@ -170,7 +169,10 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
             int remain = remoteInventoryService.getItemCount(item.getId());
             if(remain >= 1) {
                 //减少库存
-                Item tempItem = itemDao.getItem(item.getId());
+                Item tempItem = remoteInventoryService.getItemById(item.getId());
+                if (tempItem == null) {
+                    continue;
+                }
                 item.setProduct_id(tempItem.getProduct_id());
 
                 item.setRemainingNumb(remain - 1);
@@ -234,7 +236,10 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
             if(order.getStatus() == 0 && isOverTime(order.getCreate_time(),15)){
                 continue;
             }
-            Item item = itemService.getItemByItemId(order.getItem_id());
+            Item item = remoteInventoryService.getItemById(order.getItem_id());
+            if (item == null) {
+                continue;
+            }
 
             OrderItem orderItem = new OrderItem(order.getOrder_id(),item.getId(), order.getAmount(), item.getName(), item.getUrl(), item.getPrice(), order.getClient(), order.getStatus());
             orderItems.add(orderItem);
@@ -243,8 +248,11 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
     }
     public List<OrderItem> getOrderItemsByClient(String username, int identify) {
 
-        // 通过用户名查询用户ID
-        Integer userid = userDao.getUserIdByUsername(username);
+        // 通过用户模块解析用户ID
+        Integer userid = remoteUserService.getUserIdByUsername(username);
+        if (userid == null) {
+            return new ArrayList<>();
+        }
         // 创建一个查询条件，获取指定用户的所有订单列表
         QueryWrapper<Order> queryWrapper = new QueryWrapper<>();
         if (identify == 0) {
@@ -262,7 +270,10 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
         // 遍历所有的订单
         for (Order order : orderList) {
             // 根据订单中的商品 ID 获取该商品的详细信息
-            Item item = itemService.getItemByItemId(order.getItem_id());
+            Item item = remoteInventoryService.getItemById(order.getItem_id());
+            if (item == null) {
+                continue;
+            }
 
             // 创建 OrderItem 对象，将订单与商品信息封装
             OrderItem orderItem = new OrderItem(order.getOrder_id(), item.getId(), order.getAmount(), item.getName(), item.getUrl(), item.getPrice(), order.getClient(), order.getStatus());
@@ -274,6 +285,7 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
         // 返回所有订单项
         return orderItems;
     }
+
     // 获取超时没有售后的订单并转换为订单项 (OrderItem)
     public List<OrderItem> getTimeoutOrderItems() {
         // 获取当前时间
@@ -294,7 +306,10 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
                 long diff = currentTime.getTime() - afterSaleTime.getTime();
                 if (diff > 5 * 60 * 1000) { // 超过5分钟，说明是超时订单
                     // 根据订单中的商品 ID 获取该商品的详细信息
-                    Item item = itemService.getItemByItemId(order.getItem_id());
+                    Item item = remoteInventoryService.getItemById(order.getItem_id());
+                    if (item == null) {
+                        continue;
+                    }
 
                     // 创建 OrderItem 对象，将订单与商品信息封装
                     OrderItem orderItem = new OrderItem(
@@ -323,7 +338,10 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
         // 遍历所有的订单
         for (Order order : allOrders) {
             // 根据订单中的商品 ID 获取该商品的详细信息
-            Item item = itemService.getItemByItemId(order.getItem_id());
+            Item item = remoteInventoryService.getItemById(order.getItem_id());
+            if (item == null) {
+                continue;
+            }
 
             // 创建 OrderItem 对象，将订单与商品信息封装
             OrderItem orderItem = new OrderItem(
@@ -370,6 +388,19 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
         afterSaleMapper.updateById(afterSale);
     }
 
+    /**
+     * Update after-sale status for the specified order inside the service layer.
+     * Controller -> OrderService -> future RemoteUserService / RemoteInventoryService
+     */
+    public void updateAfterSaleStatus(String orderId, int newStatus) {
+        AfterSale afterSale = getAfterSale(orderId);
+        if (afterSale == null) {
+            return;
+        }
+        afterSale.setAfter_sale_status(newStatus);
+        updateAfterSale(afterSale);
+    }
+
     @Scheduled(fixedRate = 60000) // 每 60 秒执行一次,处理超时订单库存返回。。。
     public void checkUnpaidOrders() {
         System.out.println("定时任务执行中..." + System.currentTimeMillis());
@@ -390,7 +421,10 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
             orderMapper.updateById(order);
 
             //更新库存
-            Item item = itemService.getItemByItemId(order.getItem_id());
+            Item item = remoteInventoryService.getItemById(order.getItem_id());
+            if (item == null) {
+                continue;
+            }
             int remain = remoteInventoryService.getItemCount(order.getItem_id());
             item.setRemainingNumb(remain+order.getAmount());
             remoteInventoryService.updateItem(item);

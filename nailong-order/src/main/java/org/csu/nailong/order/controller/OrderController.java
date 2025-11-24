@@ -19,15 +19,7 @@ import org.csu.nailong.order.service.OrderService;
 import org.csu.nailong.order.service.RemoteInventoryService;
 import org.csu.nailong.order.service.RemoteUserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +45,7 @@ public class OrderController {
     @Autowired
     private CartService cartService;
 
+
     @Autowired
     public OrderController(AddressDao addressDao) {
         this.addressDao = addressDao;
@@ -66,44 +59,44 @@ public class OrderController {
     }
 
     @GetMapping("/singleOrder")
+    @ResponseBody
     public CommonResponse<List<Address>> orderForm1(@RequestParam("userId") int userId) {
-        return orderForm(userId);
+        List<Address> addressList = addressDao.getAllAddressById(userId);
+        // 将地址列表保存到session中
+        return CommonResponse.createForSuccess(addressList);
     }
 
-    @GetMapping("/CartCount")
-    public CommonResponse<CartOrder> cartCount(@RequestParam("userId") int userId) {
-        // TODO: 原项目通过模板渲染页面，微服务化后仅提供 JSON 数据，由网关 + 前端项目负责页面展示
-        return buildCartOrderResponse(userId);
-    }
+//    @GetMapping("/CartCount")
+//    public CommonResponse<CartOrder> cartCount(@RequestParam("userId") int userId) {
+//        // TODO: 原项目通过模板渲染页面，微服务化后仅提供 JSON 数据，由网关 + 前端项目负责页面展示
+//        return buildCartOrderResponse(userId);
+//    }
 
+    // 进入购物车结算界面的修改（用于前后端分离）
     @GetMapping("/cartOrder")
-    public CommonResponse<CartOrder> cartOrder(@RequestParam("userId") int userId) {
-        return buildCartOrderResponse(userId);
-    }
+    @ResponseBody
+    public CommonResponse<CartOrder> CartCount1(@RequestParam("userId")int userId) {
 
-    private CommonResponse<CartOrder> buildCartOrderResponse(int userId) {
         Cart cart = cartService.getCart(userId);
         List<Address> addressList = addressDao.getAllAddressById(userId);
+
         CartOrder cartOrder = new CartOrder();
         cartOrder.setAddressList(addressList);
         cartOrder.setCartItemList(cart.getItemList());
+
         return CommonResponse.createForSuccess(cartOrder);
     }
 
-    @PostMapping("/CartHandler")
-    public CommonResponse<List<Order>> cartHandler(@RequestParam("userId") int userId,
-                                                   @RequestParam("address") String addressID,
-                                                   @RequestBody Cart cart) {
-        // TODO: 原项目依赖 HttpSession 清空购物车，这里仅返回新订单信息，清理逻辑交由前端或调用方处理
-        User user = remoteUserService.getUser(userId);
-        if (user == null) {
-            return CommonResponse.createForError("用户不存在");
-        }
-        List<CartItem> cartItems = cart.getItemList() == null ? new ArrayList<>() : cart.getItemList();
-        List<Order> currentOrderList = orderService.addNewOrder1(user, addressID, cartItems);
-        return CommonResponse.createForSuccess(currentOrderList);
-    }
+//    private CommonResponse<CartOrder> buildCartOrderResponse(int userId) {
+//        Cart cart = cartService.getCart(userId);
+//        List<Address> addressList = addressDao.getAllAddressById(userId);
+//        CartOrder cartOrder = new CartOrder();
+//        cartOrder.setAddressList(addressList);
+//        cartOrder.setCartItemList(cart.getItemList());
+//        return CommonResponse.createForSuccess(cartOrder);
+//    }
 
+    // 处理提交购物车订单，清楚购物车数据
     @PostMapping("/CartSubmit")
     public CommonResponse<List<Order>> cartHandler1(@RequestParam("userId") int userId,
                                                     @RequestParam("address") String addressID) {
@@ -122,31 +115,26 @@ public class OrderController {
         return CommonResponse.createForSuccess(currentOrderList);
     }
 
-    @PostMapping("/ItemHandler")
-    public CommonResponse<Order> itemHandler(@RequestBody ItemSubmitObject itemSubmitObject) {
-        return processSingleItemOrder(itemSubmitObject);
-    }
 
     @PostMapping("/ItemSubmit")
     public CommonResponse<Order> itemHandler1(@RequestBody ItemSubmitObject itemSubmitObject) {
-        return processSingleItemOrder(itemSubmitObject);
-    }
-
-    private CommonResponse<Order> processSingleItemOrder(ItemSubmitObject itemSubmitObject) {
+        //增加新订单
         List<Item> items = new ArrayList<>();
         items.add(itemSubmitObject.getItem());
+        System.out.println(itemSubmitObject.getItem());
+        System.out.println(itemSubmitObject.getAddressID());
 
         User user = remoteUserService.getUser(itemSubmitObject.getUserId());
-        if (user == null) {
-            return CommonResponse.createForError("用户不存在");
-        }
-
+        //这里要返回 currentOrder,便于前端回传修改状态
+//        System.out.println("111111.....");
         Order order = orderService.addNewOrder3(user, itemSubmitObject.getAddressID(), items);
-        if (order == null) {
+//        System.out.println("22222222.....");
+        if(order == null){
             return CommonResponse.createForError("库存不足");
         }
         return CommonResponse.createForSuccess(order);
     }
+
 
     @PostMapping("/addresses")
     public CommonResponse<Void> addAddress(@RequestBody Address newAddress) {
@@ -188,7 +176,8 @@ public class OrderController {
     public CommonResponse<Void> statusChange(@RequestBody OrderStatusChangeRequest2 request) {
         Order order = orderService.getOrderByOrderId(request.getOrderId());
         if ("10".equals(request.getNextStatus())) {
-            Item item = itemService.getItemByItemId(order.getItem_id());
+//            Item item = itemService.getItemByItemId(order.getItem_id());
+            Item item = remoteInventoryService.getItemById(order.getItem_id());
             int remain = remoteInventoryService.getItemCount(item.getId());
             item.setRemainingNumb(remain + order.getAmount());
             order.setIs_occupy(0);
