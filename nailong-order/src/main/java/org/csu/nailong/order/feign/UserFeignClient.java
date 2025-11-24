@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(name = "user-service", path = "")
+@FeignClient(name = "nailong-user", path = "")
 public interface UserFeignClient {
 
     // TODO: 用户服务接口-根据 userId 获取用户详情；补充具体 HTTP 映射
